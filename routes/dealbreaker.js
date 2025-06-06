@@ -1,41 +1,40 @@
-const express = require('express')
-const router = express.Router()
-const Dealbreaker = require('../models/Dealbreaker')
+const express = require("express");
+const router = express.Router();
+const Dealbreaker = require("../models/Dealbreaker");
 
-router.post('/get-dealbreakers', async (req, res) => {
-  const { id } = req.body
+router.post("/get-dealbreakers", async (req, res) => {
+  const { id } = req.body;
   try {
     const dealbreakers = await Dealbreaker.findOne({
-      user: id
-    })
-    console.log('dealbreakers: ', dealbreakers)
-    res.json(dealbreakers.dealbreakers)
+      user: id,
+    });
+    res.json(dealbreakers ? dealbreakers.dealbreakers : null);
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    res.status(500).json({ message: error.message });
   }
-})
+});
 
-router.post('/add-dealbreaker', async (req, res) => {
-  console.log('add-dealbreaker')
+router.post("/add-dealbreaker", async (req, res) => {
+  console.log("add-dealbreaker");
   try {
-    const { dealbreaker, userId } = req.body
+    const { dealbreaker, userId } = req.body;
     const previousDealbreakers = await Dealbreaker.findOne({
-      user: userId
-    })
+      user: userId,
+    });
     if (previousDealbreakers) {
-      previousDealbreakers.dealbreakers = dealbreaker
-      await previousDealbreakers.save()
+      previousDealbreakers.dealbreakers = dealbreaker;
+      await previousDealbreakers.save();
     } else {
       await Dealbreaker.create({
         user: userId,
-        dealbreakers: dealbreaker
-      })
+        dealbreakers: dealbreaker,
+      });
     }
-    res.json({ message: 'Dealbreaker added' })
+    res.json({ message: "Dealbreaker added" });
   } catch (error) {
-    console.log(error)
-    res.status(500).json({ message: error.message })
+    console.log(error);
+    res.status(500).json({ message: error.message });
   }
-})
+});
 
-module.exports = router
+module.exports = router;
