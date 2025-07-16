@@ -101,6 +101,7 @@ router.post(
 		const { email, password, role } = req.body;
 		if (role === 'guest') {
 			const user = new User({
+				name: 'Guest',
 				email: 'guest@dummy.com',
 				role: 'guest',
 			});
