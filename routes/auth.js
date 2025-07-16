@@ -8,6 +8,30 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const axios = require('axios');
 
+// Helper function to generate random guest email
+const generateRandomGuestEmail = () => {
+	const randomString = Math.random().toString(36).substring(2, 15);
+	const timestamp = Date.now();
+	return `guest_${randomString}_${timestamp}@dealbreaker-temp.com`;
+};
+
+// Helper function to generate incremented guest username
+const generateGuestUsername = async () => {
+	try {
+		// Count existing guest users to determine the next number
+		const guestCount = await User.countDocuments({ role: 'guest' });
+		const guestNumber = (guestCount + 1).toString().padStart(8, '0');
+		return `guest${guestNumber}`;
+	} catch (error) {
+		console.error('Error generating guest username:', error);
+		// Fallback to random number if counting fails
+		const randomNumber = Math.floor(Math.random() * 100000000)
+			.toString()
+			.padStart(8, '0');
+		return `guest${randomNumber}`;
+	}
+};
+
 // @route   POST api/auth/register
 // @desc    Register user
 // @access  Public
@@ -100,9 +124,12 @@ router.post(
 		}
 		const { email, password, role } = req.body;
 		if (role === 'guest') {
+			const guestName = await generateGuestUsername();
+			const guestEmail = generateRandomGuestEmail();
+
 			const user = new User({
-				name: 'Guest',
-				email: 'guest@dummy.com',
+				name: guestName,
+				email: guestEmail,
 				role: 'guest',
 			});
 			await user.save();
