@@ -104,6 +104,7 @@ router.post(
 				email: 'guest@dummy.com',
 				role: 'guest',
 			});
+			await user.save();
 			const payload = {
 				user: {
 					id: user.id,
