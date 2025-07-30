@@ -122,7 +122,35 @@ router.post(
 		if (!errors.isEmpty()) {
 			return res.status(400).json({ errors: errors.array() });
 		}
-		const { email, password, role } = req.body;
+		const { email, password, role, type, social_id, social_name } =
+			req.body;
+		if (type && type === 'google') {
+			const user = await User.findOne({ email });
+			if (!user) {
+				const user = new User({
+					email: email,
+					role: 'user',
+					googleId: social_id,
+					name: social_name,
+				});
+				await user.save();
+			}
+			const payload = {
+				user: {
+					id: user.id,
+				},
+			};
+			jwt.sign(
+				payload,
+				process.env.JWT_SECRET,
+				{ expiresIn: '365d' },
+				(err, token) => {
+					if (err) throw err;
+					res.json({ token, role: user.role });
+				}
+			);
+			return;
+		}
 		if (role === 'guest') {
 			const guestName = await generateGuestUsername();
 			const guestEmail = generateRandomGuestEmail();
