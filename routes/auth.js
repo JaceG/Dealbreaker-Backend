@@ -124,7 +124,7 @@ router.post(
 		}
 		const { email, password, role, type, social_id, social_name } =
 			req.body;
-		if (type && type === 'google') {
+		if ((type && type === 'google') || type === 'apple') {
 			const user = await User.findOne({ email });
 			if (!user) {
 				const user = new User({
