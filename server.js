@@ -12,6 +12,7 @@ const uploadRoutes = require('./routes/upload');
 const userRoutes = require('./routes/user');
 const dealbreakerRoutes = require('./routes/dealbreaker');
 const User = require('./models/User');
+const myAccountRoutes = require('./routes/myAccount');
 // Create Express app
 const app = express();
 
@@ -38,6 +39,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/dealbreaker', dealbreakerRoutes);
+app.use('/api/myAccount', myAccountRoutes);
 // Root route
 app.get('/', (req, res) => {
 	res.json({ message: 'Welcome to Dealbreaker API' });
