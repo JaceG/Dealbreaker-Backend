@@ -41,9 +41,7 @@ router.post('/', auth, async (req, res) => {
 			await dealbreakers.deleteMany({
 				user: req.user.id,
 			});
-			await User.deleteOne({
-				id: req.user.id,
-			});
+			await User.findByIdAndDelete(req.user.id);
 			res.json({ message: 'Account deleted' });
 			return;
 		}
