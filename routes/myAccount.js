@@ -11,7 +11,7 @@ router.post('/', auth, async (req, res) => {
 		const { type, name, oldPassword, newPassword } = req.body;
 		if (type === 1) {
 			const user = await User.findOne({
-				user: req.user._id,
+				_id: req.user._id,
 			});
 			user.name = name;
 			await user.save();
@@ -19,7 +19,7 @@ router.post('/', auth, async (req, res) => {
 			return;
 		} else if (type === 2) {
 			const user = await User.findOne({
-				user: req.user._id,
+				_id: req.user._id,
 			});
 			const isMatch = await bcrypt.compare(oldPassword, user.password);
 
