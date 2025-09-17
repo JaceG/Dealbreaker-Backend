@@ -11,14 +11,14 @@ router.post('/', auth, async (req, res) => {
 		const { type, name, oldPassword, newPassword } = req.body;
 		if (type === 1) {
 			const user = await User.findOne({
-				user: req.user.id,
+				user: req.user._id,
 			});
 			user.name = name;
 			await user.save();
 			res.json(user ? user : null);
 		} else if (type === 2) {
 			const user = await User.findOne({
-				user: req.user.id,
+				user: req.user._id,
 			});
 			const isMatch = await bcrypt.compare(oldPassword, user.password);
 
@@ -32,13 +32,13 @@ router.post('/', auth, async (req, res) => {
 			res.json(user ? user : null);
 		} else if (type === 3) {
 			await flaghistories.deleteMany({
-				creatorId: req.user.id,
+				creatorId: req.user._id,
 			});
 			await dealbreakers.deleteMany({
 				user: req.user.id,
 			});
 			await User.deleteOne({
-				_id: req.user.id,
+				_id: req.user._id,
 			});
 			res.json({ message: 'Account deleted' });
 		}
