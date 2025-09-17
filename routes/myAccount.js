@@ -10,13 +10,13 @@ router.post('/', auth, async (req, res) => {
 	try {
 		const { type, name, oldPassword, newPassword } = req.body;
 		if (type === 1) {
-			const user = await User.findById(req.user._id);
+			const user = await User.findById(req.user.id);
 			user.name = name;
 			await user.save();
 			res.json(user ? user : null);
 			return;
 		} else if (type === 2) {
-			const user = await User.findById(req.user._id);
+			const user = await User.findById(req.user.id);
 			const isMatch = await bcrypt.compare(oldPassword, user.password);
 
 			if (!isMatch) {
@@ -30,13 +30,13 @@ router.post('/', auth, async (req, res) => {
 			return;
 		} else if (type === 3) {
 			await flaghistories.deleteMany({
-				creatorId: req.user._id,
+				creatorId: req.user.id,
 			});
 			await dealbreakers.deleteMany({
-				user: req.user._id,
+				user: req.user.id,
 			});
 			await User.deleteOne({
-				id: req.user._id,
+				id: req.user.id,
 			});
 			res.json({ message: 'Account deleted' });
 			return;
@@ -47,7 +47,6 @@ router.post('/', auth, async (req, res) => {
 		res.status(500).json({ message: error.message });
 		return;
 	}
-	return;
 });
 
 module.exports = router;
