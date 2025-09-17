@@ -17,13 +17,18 @@ router.post('/', auth, async (req, res) => {
 			return;
 		} else if (type === 2) {
 			const user = await User.findById(req.user.id);
-			// const isMatch = await bcrypt.compare(oldPassword, user.password);
+			if (user.password) {
+				const isMatch = await bcrypt.compare(
+					oldPassword,
+					user.password
+				);
 
-			// if (!isMatch) {
-			// 	return res
-			// 		.status(422)
-			// 		.json({ errors: [{ msg: 'Password is incorrect' }] });
-			// }
+				if (!isMatch) {
+					return res
+						.status(422)
+						.json({ errors: [{ msg: 'Password is incorrect' }] });
+				}
+			}
 			const salt = await bcrypt.genSalt(10);
 			user.password = await bcrypt.hash(newPassword, salt);
 			await user.save();
