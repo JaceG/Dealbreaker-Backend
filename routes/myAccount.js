@@ -10,17 +10,13 @@ router.post('/', auth, async (req, res) => {
 	try {
 		const { type, name, oldPassword, newPassword } = req.body;
 		if (type === 1) {
-			const user = await User.findOne({
-				_id: req.user._id,
-			});
+			const user = await User.findById(req.user._id);
 			user.name = name;
 			await user.save();
 			res.json(user ? user : null);
 			return;
 		} else if (type === 2) {
-			const user = await User.findOne({
-				_id: req.user._id,
-			});
+			const user = await User.findById(req.user._id);
 			const isMatch = await bcrypt.compare(oldPassword, user.password);
 
 			if (!isMatch) {
@@ -40,7 +36,7 @@ router.post('/', auth, async (req, res) => {
 				user: req.user._id,
 			});
 			await User.deleteOne({
-				_id: req.user._id,
+				id: req.user._id,
 			});
 			res.json({ message: 'Account deleted' });
 			return;
