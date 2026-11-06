@@ -7,6 +7,10 @@ const { check, validationResult } = require('express-validator');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const axios = require('axios');
+const {
+	verifyAppleIdToken,
+	verifyGoogleIdToken,
+} = require('../utils/verifySocialToken');
 
 // Helper function to generate random guest email
 const generateRandomGuestEmail = () => {
@@ -122,34 +126,50 @@ router.post(
 		if (!errors.isEmpty()) {
 			return res.status(400).json({ errors: errors.array() });
 		}
-		const { email, password, role, type, social_id, social_name } =
-			req.body;
-		if ((type && type === 'google') || type === 'apple') {
-			const user = await User.findOne({ email });
-			if (!user) {
-				const user = new User({
-					email: email,
-					role: 'user',
-					googleId: social_id,
-					name: social_name,
-				});
-				await user.save();
+		const { email, password, role, type, social_name } = req.body;
+		if (type === 'google' || type === 'apple') {
+			// Trust only what Google or Apple signed, never the email in the request.
+			if (!req.body.idToken) {
+				return res
+					.status(400)
+					.json({ errors: [{ msg: 'Identity token is required' }] });
 			}
-			const payload = {
-				user: {
-					id: user.id,
-				},
-			};
-			jwt.sign(
-				payload,
-				process.env.JWT_SECRET,
-				{ expiresIn: '365d' },
-				(err, token) => {
-					if (err) throw err;
-					res.json({ token, role: user.role });
+			let verified;
+			try {
+				verified =
+					type === 'google'
+						? await verifyGoogleIdToken(req.body.idToken)
+						: await verifyAppleIdToken(req.body.idToken);
+			} catch (err) {
+				console.error(`${type} sign-in rejected:`, err.message);
+				return res
+					.status(401)
+					.json({ errors: [{ msg: 'Sign-in could not be verified' }] });
+			}
+			try {
+				// Apple omits the email when the user hides it; earlier app versions stored this form.
+				const verifiedEmail =
+					verified.email || `${verified.sub}@privaterelay.appleid.com`;
+				let user = await User.findOne({ email: verifiedEmail });
+				if (!user) {
+					user = new User({
+						email: verifiedEmail,
+						role: 'user',
+						googleId: verified.sub,
+						name: verified.name || social_name || `${type} user`,
+					});
+					await user.save();
 				}
-			);
-			return;
+				const token = jwt.sign(
+					{ user: { id: user.id } },
+					process.env.JWT_SECRET,
+					{ expiresIn: '365d' }
+				);
+				return res.json({ token, role: user.role });
+			} catch (err) {
+				console.error(err.message);
+				return res.status(500).send('Server error');
+			}
 		}
 		if (role === 'guest') {
 			const guestName = await generateGuestUsername();
@@ -179,6 +199,13 @@ router.post(
 		}
 
 		try {
+			// Earlier app versions gave every Google and Apple account this fixed password.
+			if (password === 'social_login_placeholder') {
+				return res
+					.status(400)
+					.json({ errors: [{ msg: 'Invalid Credentials' }] });
+			}
+
 			// Check if user exists
 			let user = await User.findOne({ email, role: 'user' });
 
