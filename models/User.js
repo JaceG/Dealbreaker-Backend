@@ -20,9 +20,13 @@ const UserSchema = new Schema({
 		type: String,
 		// Password not required for OAuth users
 	},
+	// Google and Apple account IDs (the token's sub). null means the user disconnected it,
+	// so signing in with that provider's email no longer reconnects it.
 	googleId: {
 		type: String,
-		// Only for Google OAuth users
+	},
+	appleId: {
+		type: String,
 	},
 	profile_image: {
 		type: String,
@@ -30,6 +34,14 @@ const UserSchema = new Schema({
 	created_at: {
 		type: Date,
 		default: Date.now,
+	},
+});
+
+// Never send the password hash back to a client.
+UserSchema.set('toJSON', {
+	transform: (doc, ret) => {
+		delete ret.password;
+		return ret;
 	},
 });
 

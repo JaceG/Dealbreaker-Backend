@@ -54,4 +54,9 @@ const verifyGoogleIdToken = async (
 	return { sub: info.sub, email: info.email, name: info.name };
 };
 
-module.exports = { verifyAppleIdToken, verifyGoogleIdToken };
+const verifyIdToken = (type, idToken) =>
+	type === 'google'
+		? verifyGoogleIdToken(idToken)
+		: verifyAppleIdToken(idToken);
+
+module.exports = { verifyAppleIdToken, verifyGoogleIdToken, verifyIdToken };

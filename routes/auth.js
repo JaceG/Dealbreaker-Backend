@@ -6,11 +6,8 @@ const passport = require('passport');
 const { check, validationResult } = require('express-validator');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const axios = require('axios');
-const {
-	verifyAppleIdToken,
-	verifyGoogleIdToken,
-} = require('../utils/verifySocialToken');
+const { verifyIdToken } = require('../utils/verifySocialToken');
+const { PROVIDER_FIELD, moveLegacyAppleId } = require('../utils/signInMethods');
 
 // Helper function to generate random guest email
 const generateRandomGuestEmail = () => {
@@ -136,10 +133,7 @@ router.post(
 			}
 			let verified;
 			try {
-				verified =
-					type === 'google'
-						? await verifyGoogleIdToken(req.body.idToken)
-						: await verifyAppleIdToken(req.body.idToken);
+				verified = await verifyIdToken(type, req.body.idToken);
 			} catch (err) {
 				console.error(`${type} sign-in rejected:`, err.message);
 				return res
@@ -147,15 +141,36 @@ router.post(
 					.json({ errors: [{ msg: 'Sign-in could not be verified' }] });
 			}
 			try {
+				const field = PROVIDER_FIELD[type];
 				// Apple omits the email when the user hides it; earlier app versions stored this form.
 				const verifiedEmail =
-					verified.email || `${verified.sub}@privaterelay.appleid.com`;
-				let user = await User.findOne({ email: verifiedEmail });
-				if (!user) {
+					verified.email ||
+					`${verified.sub}@privaterelay.appleid.com`;
+				// Match the provider's account ID first, then the verified email.
+				let user =
+					(await User.findOne({ [field]: verified.sub })) ||
+					(type === 'apple' &&
+						(await User.findOne({ googleId: verified.sub }))) ||
+					(await User.findOne({ email: verifiedEmail }));
+				if (user) {
+					moveLegacyAppleId(user);
+					if (user[field] === null) {
+						const provider = type === 'google' ? 'Google' : 'Apple';
+						return res.status(403).json({
+							errors: [
+								{
+									msg: `This ${provider} account was disconnected from your Dealbreaker account. Sign in another way, then connect it again in My Account.`,
+								},
+							],
+						});
+					}
+					if (!user[field]) user[field] = verified.sub;
+					if (user.isModified()) await user.save();
+				} else {
 					user = new User({
 						email: verifiedEmail,
 						role: 'user',
-						googleId: verified.sub,
+						[field]: verified.sub,
 						name: verified.name || social_name || `${type} user`,
 					});
 					await user.save();
@@ -295,94 +310,5 @@ router.get(
 		);
 	}
 );
-
-// @route   POST api/auth/google-token
-// @desc    Login or register with Google OAuth token from mobile app
-// @access  Public
-router.post('/google-token', async (req, res) => {
-	const { accessToken, idToken } = req.body;
-
-	if (!accessToken && !idToken) {
-		return res.status(400).json({
-			errors: [{ msg: 'Either access token or ID token is required' }],
-		});
-	}
-
-	try {
-		// For iOS, we can verify the token with Google
-		let googleUserInfo;
-
-		if (accessToken) {
-			// Verify with access token (old method)
-			googleUserInfo = await axios.get(
-				'https://www.googleapis.com/oauth2/v3/userinfo',
-				{
-					headers: { Authorization: `Bearer ${accessToken}` },
-				}
-			);
-		} else {
-			// Verify ID token (more secure for mobile)
-			// We don't need the client secret for this verification
-			googleUserInfo = await axios.get(
-				`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`
-			);
-		}
-
-		// Validate the audience (client ID) if using ID token
-		if (
-			idToken &&
-			googleUserInfo.data.aud !== process.env.GOOGLE_CLIENT_ID
-		) {
-			return res
-				.status(401)
-				.json({ errors: [{ msg: 'Invalid token audience' }] });
-		}
-
-		const { sub, name, email, picture } = googleUserInfo.data;
-
-		// Check if user exists
-		let user = await User.findOne({ email });
-
-		if (!user) {
-			// Create new user if doesn't exist
-			user = new User({
-				googleId: sub,
-				name,
-				email,
-				profile_image: picture,
-			});
-
-			await user.save();
-		} else if (!user.googleId) {
-			// If user exists but doesn't have googleId, update it
-			user.googleId = sub;
-			user.profile_image = picture || user.profile_image;
-			await user.save();
-		}
-
-		// Return jsonwebtoken
-		const payload = {
-			user: {
-				id: user.id,
-			},
-		};
-
-		jwt.sign(
-			payload,
-			process.env.JWT_SECRET,
-			{ expiresIn: '24h' },
-			(err, token) => {
-				if (err) throw err;
-				res.json({
-					token,
-					user: { id: user.id, name: user.name, email: user.email },
-				});
-			}
-		);
-	} catch (err) {
-		console.error('Google token verification error:', err.message);
-		res.status(500).json({ errors: [{ msg: 'Server error' }] });
-	}
-});
 
 module.exports = router;
