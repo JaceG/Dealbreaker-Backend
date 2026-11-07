@@ -2,13 +2,20 @@ const express = require('express');
 const router = express.Router();
 const FlagHistory = require('../models/FlagHistory');
 const User = require('../models/User');
-const mongoose = require('mongoose');
+const auth = require('../middleware/auth');
+
+// Profile ids such as 'main' repeat across users, so each entry's owner is its creatorId, stamped from the token.
+router.use(auth);
 
 // Get all history entries for a flag
 router.get('/:profileId/:flagId', async (req, res) => {
 	try {
 		const { profileId, flagId } = req.params;
-		const history = await FlagHistory.find({ profileId, flagId })
+		const history = await FlagHistory.find({
+			profileId,
+			flagId,
+			creatorId: req.user.id,
+		})
 			.sort({ timestamp: -1 }) // Newest first
 			.exec();
 
@@ -33,11 +40,11 @@ router.post('/', async (req, res) => {
 			newStatus = '',
 			reason = '',
 			attachments = [],
-			creatorId = req.user ? req.user.id : null,
 			// Card type transition tracking
 			previousCardType = 'none',
 			newCardType = 'none',
 		} = req.body;
+		const creatorId = req.user.id;
 
 		// Validate required fields with better error messages
 		if (!profileId) {
@@ -103,9 +110,8 @@ router.post('/', async (req, res) => {
 		// Look up creator info if we have a creator ID
 		if (creatorId) {
 			try {
-				const creator = await User.findById(creatorId).select(
-					'name email'
-				);
+				const creator =
+					await User.findById(creatorId).select('name email');
 				if (creator) {
 					creatorName = creator.name || '';
 					creatorEmail = creator.email || '';
@@ -185,8 +191,8 @@ router.post('/:historyId/attachment', async (req, res) => {
 		const { historyId } = req.params;
 		const { attachment } = req.body;
 
-		const result = await FlagHistory.findByIdAndUpdate(
-			historyId,
+		const result = await FlagHistory.findOneAndUpdate(
+			{ _id: historyId, creatorId: req.user.id },
 			{ $push: { attachments: attachment } },
 			{ new: true }
 		);
@@ -210,8 +216,7 @@ router.post('/sync', async (req, res) => {
 		);
 
 		const { changes } = req.body;
-		// Get creator ID from authenticated user if available
-		const creatorId = req.user ? req.user.id : null;
+		const creatorId = req.user.id;
 
 		if (!changes || !Array.isArray(changes)) {
 			console.log('Validation error: changes is not an array');
@@ -264,9 +269,6 @@ router.post('/sync', async (req, res) => {
 						cardTypeChange = 'dealbreaker-to-flag';
 					}
 
-					// Get the creator ID
-					const creatorId = change.data.creatorId || creatorId;
-
 					// Get user information if we have user IDs
 					let creatorName = '';
 					let creatorEmail = '';
@@ -276,9 +278,10 @@ router.post('/sync', async (req, res) => {
 					// Look up creator info if we have a creator ID
 					if (creatorId) {
 						try {
-							const creator = await User.findById(
-								creatorId
-							).select('name email');
+							const creator =
+								await User.findById(creatorId).select(
+									'name email'
+								);
 							if (creator) {
 								creatorName = creator.name || '';
 								creatorEmail = creator.email || '';
@@ -367,199 +370,6 @@ router.post('/sync', async (req, res) => {
 	} catch (error) {
 		console.error('Error in sync endpoint:', error.message);
 		res.status(400).json({ message: error.message });
-	}
-});
-
-// Filter flag histories by user attributes - as creator or profile owner
-router.get('/filter/byUser', async (req, res) => {
-	try {
-		const { userId, name, email, isCreator } = req.query;
-
-		// Find users matching the criteria
-		let userQuery = {};
-
-		if (userId) {
-			userQuery._id = userId;
-		}
-
-		if (name) {
-			userQuery.name = { $regex: name, $options: 'i' }; // Case insensitive search
-		}
-
-		if (email) {
-			userQuery.email = { $regex: email, $options: 'i' }; // Case insensitive search
-		}
-
-		// If no filter criteria provided, return empty result
-		if (Object.keys(userQuery).length === 0) {
-			return res.status(400).json({
-				message:
-					'At least one filter criteria (userId, name, or email) is required',
-			});
-		}
-
-		// Find matching users
-		const users = await User.find(userQuery).select('_id');
-
-		if (users.length === 0) {
-			return res.json({
-				message: 'No users found with the given criteria',
-				histories: [],
-			});
-		}
-
-		// Extract user IDs
-		const userIds = users.map((user) => user._id);
-
-		// Find flag histories for these users - either as creators or profile owners
-		const query = {};
-
-		// If isCreator is specified, filter by creator or profile owner accordingly
-		if (isCreator === 'true') {
-			query.creatorId = { $in: userIds };
-		} else if (isCreator === 'false') {
-			query.userId = { $in: userIds };
-		} else {
-			// If not specified, check both
-			query.$or = [
-				{ creatorId: { $in: userIds } },
-				{ userId: { $in: userIds } },
-			];
-		}
-
-		const histories = await FlagHistory.find(query).sort({ timestamp: -1 });
-
-		res.json({
-			count: histories.length,
-			histories,
-		});
-	} catch (error) {
-		console.error('Error filtering flag histories by user:', error.message);
-		res.status(500).json({ message: error.message });
-	}
-});
-
-// Advanced filtering with MongoDB aggregation
-router.get('/filter/advanced', async (req, res) => {
-	try {
-		const { userId, creatorId, name, email, flagId, startDate, endDate } =
-			req.query;
-
-		// Start building the aggregation pipeline
-		const pipeline = [];
-
-		// If we have user-related filters for the profile owner
-		if (userId || name || email) {
-			// Stage 1: Lookup users collection for profile owner
-			pipeline.push({
-				$lookup: {
-					from: 'users',
-					localField: 'userId',
-					foreignField: '_id',
-					as: 'profileOwner',
-				},
-			});
-
-			// Stage 2: Unwind the profileOwner array
-			pipeline.push({
-				$unwind: {
-					path: '$profileOwner',
-					preserveNullAndEmptyArrays: true,
-				},
-			});
-		}
-
-		// If we have creator-related filters
-		if (creatorId || name || email) {
-			// Stage 3: Lookup users collection for creators
-			pipeline.push({
-				$lookup: {
-					from: 'users',
-					localField: 'creatorId',
-					foreignField: '_id',
-					as: 'creator',
-				},
-			});
-
-			// Stage 4: Unwind the creator array
-			pipeline.push({
-				$unwind: {
-					path: '$creator',
-					preserveNullAndEmptyArrays: true,
-				},
-			});
-		}
-
-		// Stage 5: Match on all criteria
-		const matchCriteria = {};
-
-		// Profile owner filters
-		if (userId) {
-			matchCriteria['profileOwner._id'] = mongoose.Types.ObjectId(userId);
-		}
-
-		// Creator filters
-		if (creatorId) {
-			matchCriteria['creator._id'] = mongoose.Types.ObjectId(creatorId);
-		}
-
-		// Name filters (check both profile owner and creator)
-		if (name) {
-			matchCriteria.$or = matchCriteria.$or || [];
-			matchCriteria.$or.push(
-				{ 'profileOwner.name': { $regex: name, $options: 'i' } },
-				{ 'creator.name': { $regex: name, $options: 'i' } }
-			);
-		}
-
-		// Email filters (check both profile owner and creator)
-		if (email) {
-			matchCriteria.$or = matchCriteria.$or || [];
-			matchCriteria.$or.push(
-				{ 'profileOwner.email': { $regex: email, $options: 'i' } },
-				{ 'creator.email': { $regex: email, $options: 'i' } }
-			);
-		}
-
-		// Flag ID filter
-		if (flagId) {
-			matchCriteria.flagId = flagId;
-		}
-
-		// Date range filtering
-		if (startDate || endDate) {
-			matchCriteria.timestamp = {};
-
-			if (startDate) {
-				matchCriteria.timestamp.$gte = new Date(startDate);
-			}
-
-			if (endDate) {
-				matchCriteria.timestamp.$lte = new Date(endDate);
-			}
-		}
-
-		// Add match stage if we have criteria
-		if (Object.keys(matchCriteria).length > 0) {
-			pipeline.push({ $match: matchCriteria });
-		}
-
-		// Add sorting stage - newest first
-		pipeline.push({ $sort: { timestamp: -1 } });
-
-		// Execute the aggregation pipeline
-		const histories = await FlagHistory.aggregate(pipeline);
-
-		res.json({
-			count: histories.length,
-			histories,
-		});
-	} catch (error) {
-		console.error(
-			'Error in advanced flag history filtering:',
-			error.message
-		);
-		res.status(500).json({ message: error.message });
 	}
 });
 
