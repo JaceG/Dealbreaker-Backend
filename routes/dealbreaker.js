@@ -1,12 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const Dealbreaker = require("../models/Dealbreaker");
+const auth = require("../middleware/auth");
+
+// The board owner comes from the login token; ids in the body are ignored.
+router.use(auth);
 
 router.post("/get-dealbreakers", async (req, res) => {
-  const { id } = req.body;
   try {
     const dealbreakers = await Dealbreaker.findOne({
-      user: id,
+      user: req.user.id,
     });
     res.json(dealbreakers ? dealbreakers.dealbreakers : null);
   } catch (error) {
@@ -17,7 +20,8 @@ router.post("/get-dealbreakers", async (req, res) => {
 router.post("/add-dealbreaker", async (req, res) => {
   console.log("add-dealbreaker");
   try {
-    const { dealbreaker, userId } = req.body;
+    const { dealbreaker } = req.body;
+    const userId = req.user.id;
     const previousDealbreakers = await Dealbreaker.findOne({
       user: userId,
     });

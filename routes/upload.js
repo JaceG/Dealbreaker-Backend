@@ -4,6 +4,10 @@ const AWS = require('aws-sdk')
 const multer = require('multer')
 const multerS3 = require('multer-s3')
 const path = require('path')
+const auth = require('../middleware/auth')
+
+// Every upload needs a login, checked before multer touches S3.
+router.use(auth)
 
 // Configure AWS S3
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID
@@ -68,52 +72,6 @@ router.post('/', upload.single('file'), (req, res) => {
       .status(500)
       .json({ message: 'Upload failed', error: error.message })
   }
-})
-
-// Direct upload with provided key and bucket
-router.post('/custom', (req, res) => {
-  console.log('Custom upload request received')
-
-  const { file, bucket, key } = req.body
-
-  console.log('Custom upload params:', {
-    hasFile: !!file,
-    fileLength: file ? file.length : 0,
-    bucket,
-    key
-  })
-
-  if (!file || !bucket || !key) {
-    console.log('Missing parameters for custom upload')
-    return res.status(400).json({ message: 'Missing required parameters' })
-  }
-
-  // Convert base64 to buffer
-  const fileBuffer = Buffer.from(file.replace(/^data:.*;base64,/, ''), 'base64')
-
-  const params = {
-    Bucket: bucket,
-    Key: key,
-    Body: fileBuffer,
-    ContentType: path.extname(key).startsWith('.')
-      ? `image/${path.extname(key).substring(1)}`
-      : 'application/octet-stream'
-  }
-
-  s3.upload(params, (err, data) => {
-    if (err) {
-      console.error('S3 upload error:', err)
-      return res
-        .status(500)
-        .json({ message: 'S3 upload failed', error: err.message })
-    }
-
-    return res.status(200).json({
-      message: 'File uploaded successfully',
-      url: data.Location,
-      key: data.Key
-    })
-  })
 })
 
 // Add a new simple upload route that doesn't use multer-s3
