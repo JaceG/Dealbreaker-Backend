@@ -7,6 +7,23 @@ const auth = require('../middleware/auth');
 // Profile ids such as 'main' repeat across users, so each entry's owner is its creatorId, stamped from the token.
 router.use(auth);
 
+// How many history entries each card has on one profile, for the counter on the card's notes icon.
+// Declared before '/:profileId/:flagId', which would otherwise take '/counts/<id>'.
+router.get('/counts/:profileId', async (req, res) => {
+	try {
+		const entries = await FlagHistory.find(
+			{ profileId: req.params.profileId, creatorId: req.user.id },
+			'flagId'
+		).lean();
+		const counts = {};
+		for (const { flagId } of entries) counts[flagId] = (counts[flagId] || 0) + 1;
+		res.json(counts);
+	} catch (error) {
+		console.error('Error counting flag history:', error);
+		res.status(500).json({ message: 'Server error' });
+	}
+});
+
 // Get all history entries for a flag
 router.get('/:profileId/:flagId', async (req, res) => {
 	try {

@@ -145,6 +145,10 @@ test(
 			(await call('DELETE', '/profile/profile_1', null)).status,
 			401
 		);
+		// Counts per card cover only your own entries on that profile.
+		const counts = await call('GET', '/counts/profile_1', null, tokenFor(alice));
+		assert.deepStrictEqual(counts.body, { [sam.flagId]: 1 });
+		assert.strictEqual((await call('GET', '/counts/profile_1', null)).status, 401);
 		const cleared = await call('DELETE', '/profile/profile_1', null, tokenFor(alice));
 		assert.deepStrictEqual(cleared.body, { deleted: 1 });
 		assert.strictEqual(await FlagHistory.countDocuments({ profileId: 'profile_1' }), 1);
