@@ -32,7 +32,9 @@ const upload = multer({
     bucket: bucketName,
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
-      const fileName = `${Date.now()}_${Math.floor(Math.random() * 10000)}_${path.basename(file.originalname)}`
+      // Files sit under the uploader's id, so deleting a person's history can only ever remove that user's files.
+      const owner = req.user ? `${req.user.id}/` : ''
+      const fileName = `${owner}${Date.now()}_${Math.floor(Math.random() * 10000)}_${path.basename(file.originalname)}`
       cb(null, fileName)
     }
   }),
@@ -105,7 +107,8 @@ router.post('/direct', (req, res) => {
     })
 
     // Generate a unique filename
-    const fileName = `${Date.now()}_${Math.floor(Math.random() * 10000)}_${path.basename(req.file.originalname)}`
+    // Under the uploader's id: deleting a person's history only ever removes the same user's files.
+    const fileName = `${req.user.id}/${Date.now()}_${Math.floor(Math.random() * 10000)}_${path.basename(req.file.originalname)}`
 
     // Set up S3 upload parameters
     const params = {

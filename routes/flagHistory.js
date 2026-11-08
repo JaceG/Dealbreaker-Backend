@@ -3,6 +3,7 @@ const router = express.Router();
 const FlagHistory = require('../models/FlagHistory');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { deleteAttachmentFiles } = require('../utils/s3Attachments');
 
 // Profile ids such as 'main' repeat across users, so each entry's owner is its creatorId, stamped from the token.
 router.use(auth);
@@ -21,6 +22,42 @@ router.get('/counts/:profileId', async (req, res) => {
 	} catch (error) {
 		console.error('Error counting flag history:', error);
 		res.status(500).json({ message: 'Server error' });
+	}
+});
+
+// One card's entries across every person, newest first. Main is the rulebook, not a person, so it is left out.
+router.get('/card/:flagId', async (req, res) => {
+	try {
+		const history = await FlagHistory.find({
+			flagId: req.params.flagId,
+			creatorId: req.user.id,
+			profileId: { $ne: 'main' },
+		})
+			.sort({ timestamp: -1 })
+			.lean();
+		res.json(history);
+	} catch (error) {
+		res.status(500).json({ message: error.message });
+	}
+});
+
+// Every entry you own, oldest first, slimmed for the stats screen: attachments become a count.
+router.get('/mine', async (req, res) => {
+	try {
+		const entries = await FlagHistory.find(
+			{ creatorId: req.user.id },
+			'profileId profileName flagId flagTitle previousStatus newStatus cardTypeChange previousCardType newCardType reason attachments timestamp'
+		)
+			.sort({ timestamp: 1 })
+			.lean();
+		res.json(
+			entries.map(({ _id, attachments, ...rest }) => ({
+				...rest,
+				attachmentCount: Array.isArray(attachments) ? attachments.length : 0,
+			}))
+		);
+	} catch (error) {
+		res.status(500).json({ message: error.message });
 	}
 });
 
@@ -208,11 +245,23 @@ router.delete('/profile/:profileId', async (req, res) => {
 		if (req.params.profileId === 'main') {
 			return res.status(400).json({ message: 'The main profile cannot be deleted' });
 		}
-		const result = await FlagHistory.deleteMany({
-			profileId: req.params.profileId,
-			creatorId: req.user.id,
-		});
-		res.json({ deleted: result.deletedCount });
+		const filter = { profileId: req.params.profileId, creatorId: req.user.id };
+		const entries = await FlagHistory.find(filter, 'attachments.url').lean();
+		const result = await FlagHistory.deleteMany(filter);
+		// The files go too, but an S3 failure only gets logged: the history is already gone.
+		let filesDeleted = 0;
+		try {
+			const urls = entries.flatMap((e) => (e.attachments || []).map((a) => a?.url)).filter(Boolean);
+			if (urls.length) {
+				const stillUsed = new Set(
+					await FlagHistory.distinct('attachments.url', { 'attachments.url': { $in: urls } })
+				);
+				filesDeleted = await deleteAttachmentFiles(urls.filter((u) => !stillUsed.has(u)), req.user.id);
+			}
+		} catch (s3Error) {
+			console.error('Error deleting profile attachment files:', s3Error.message);
+		}
+		res.json({ deleted: result.deletedCount, filesDeleted });
 	} catch (error) {
 		res.status(500).json({ message: error.message });
 	}

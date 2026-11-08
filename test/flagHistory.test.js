@@ -149,9 +149,55 @@ test(
 		const counts = await call('GET', '/counts/profile_1', null, tokenFor(alice));
 		assert.deepStrictEqual(counts.body, { [sam.flagId]: 1 });
 		assert.strictEqual((await call('GET', '/counts/profile_1', null)).status, 401);
+		// One card across people: own entries only, newest first, Main left out.
+		const lee = { ...entry, profileId: 'profile_2', profileName: 'Lee', newStatus: 'red' };
+		await call('POST', '/', lee, tokenFor(alice));
+		const card = await call('GET', '/card/1234.5', null, tokenFor(alice));
+		assert.strictEqual(card.status, 200);
+		assert.deepStrictEqual(card.body.map((e) => e.profileId), ['profile_2', 'profile_1']);
+		assert.ok(card.body.every((e) => e.creatorId === alice));
+		const bobCard = await call('GET', '/card/1234.5', null, tokenFor(bob));
+		assert.deepStrictEqual(bobCard.body.map((e) => e.profileId), ['profile_1']);
+		assert.strictEqual((await call('GET', '/card/1234.5', null)).status, 401);
+
+		// All your entries, oldest first, attachments reduced to a count.
+		const mine = await call('GET', '/mine', null, tokenFor(alice));
+		assert.strictEqual(mine.status, 200);
+		assert.deepStrictEqual(mine.body.map((e) => e.profileId), ['main', 'main', 'profile_1', 'profile_2']);
+		assert.deepStrictEqual(Object.keys(mine.body[0]).sort(), [
+			'attachmentCount', 'cardTypeChange', 'flagId', 'flagTitle', 'newCardType', 'newStatus',
+			'previousCardType', 'previousStatus', 'profileId', 'profileName', 'reason', 'timestamp',
+		]);
+		assert.strictEqual(mine.body.find((e) => e.attachmentCount === 1).newStatus, 'yellow');
+		assert.strictEqual((await call('GET', '/mine', null, tokenFor(bob))).body.length, 1);
+		assert.strictEqual((await call('GET', '/mine', null)).status, 401);
+
 		const cleared = await call('DELETE', '/profile/profile_1', null, tokenFor(alice));
-		assert.deepStrictEqual(cleared.body, { deleted: 1 });
+		assert.deepStrictEqual(cleared.body, { deleted: 1, filesDeleted: 0 });
 		assert.strictEqual(await FlagHistory.countDocuments({ profileId: 'profile_1' }), 1);
-		assert.strictEqual(await FlagHistory.countDocuments(), 3);
+		assert.strictEqual(await FlagHistory.countDocuments(), 4);
 	}
 );
+
+test('attachment URLs map to keys only inside our bucket', () => {
+	const { keyFromUrl } = require('../utils/s3Attachments');
+	const k = (url) => keyFromUrl(url, 'my-bucket', 'us-west-2');
+	assert.strictEqual(k('https://my-bucket.s3.us-west-2.amazonaws.com/123_4_a%20b.jpg'), '123_4_a b.jpg');
+	assert.strictEqual(k('https://my-bucket.s3.amazonaws.com/x.jpg'), 'x.jpg');
+	assert.strictEqual(k('https://s3.us-west-2.amazonaws.com/my-bucket/x.jpg'), 'x.jpg');
+	assert.strictEqual(k('https://other.s3.us-west-2.amazonaws.com/x.jpg'), null);
+	assert.strictEqual(k('https://s3.us-west-2.amazonaws.com/other/x.jpg'), null);
+	assert.strictEqual(k('https://my-bucket.s3.us-west-2.amazonaws.com.evil.com/x.jpg'), null);
+	assert.strictEqual(k('http://my-bucket.s3.amazonaws.com/x.jpg'), null);
+	assert.strictEqual(k('file:///var/mobile/x.jpg'), null);
+	assert.strictEqual(k('https://my-bucket.s3.amazonaws.com/'), null);
+	assert.strictEqual(keyFromUrl('https://my-bucket.s3.amazonaws.com/x.jpg', undefined), null);
+	const { ownedKeys } = require('../utils/s3Attachments');
+	assert.deepStrictEqual(
+		ownedKeys(
+			['https://my-bucket.s3.us-west-2.amazonaws.com/u1/a.jpg', 'https://my-bucket.s3.us-west-2.amazonaws.com/u2/b.jpg', 'https://my-bucket.s3.us-west-2.amazonaws.com/c.jpg'],
+			'u1', 'my-bucket', 'us-west-2'
+		),
+		['u1/a.jpg']
+	);
+});
