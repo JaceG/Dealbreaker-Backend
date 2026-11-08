@@ -49,10 +49,6 @@ dealbreaker-backend/
 - `POST /api/auth/login` - Log in and get JWT token
 - `GET /api/auth/google` - Google OAuth authentication
 
-### User Management
-- `GET /api/user/profile` - Get user profile
-- `PUT /api/user/profile` - Update user profile
-
 ### Flag Management
 - `GET /api/flagHistory` - Get all flags for a user
 - `POST /api/flagHistory` - Create a new flag

@@ -9,7 +9,6 @@ const { CronJob } = require('cron');
 const flagHistoryRoutes = require('./routes/flagHistory');
 const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/upload');
-const userRoutes = require('./routes/user');
 const dealbreakerRoutes = require('./routes/dealbreaker');
 const User = require('./models/User');
 const myAccountRoutes = require('./routes/myAccount');
@@ -37,7 +36,6 @@ mongoose
 app.use('/api/flagHistory', flagHistoryRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/api/user', userRoutes);
 app.use('/api/dealbreaker', dealbreakerRoutes);
 app.use('/api/myAccount', myAccountRoutes);
 // Root route

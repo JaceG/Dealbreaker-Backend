@@ -16,7 +16,6 @@ const region = process.env.AWS_REGION
 const bucketName = process.env.S3_BUCKET_NAME
 
 console.log('AWS S3 Configuration:')
-console.log('- Using accessKeyId:', accessKeyId)
 console.log('- Region:', region)
 console.log('- Bucket:', bucketName)
 
