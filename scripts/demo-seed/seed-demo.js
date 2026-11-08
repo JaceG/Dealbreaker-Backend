@@ -1,4 +1,4 @@
-// Fills one account with a demo board: a main list of 36 cards and five people, each with a history.
+// Fills one account with a demo board: a main list of 43 cards and five people, each with a long history.
 //   node scripts/demo-seed/seed-demo.js --check          validate the story only, touch nothing
 //   node scripts/demo-seed/seed-demo.js                  back up the account's board, then write the demo
 //   node scripts/demo-seed/seed-demo.js --watch=120      re-write the board if a phone overwrites it (minutes)
@@ -26,12 +26,12 @@ const CARDS = [
 	['badExes', 'Talks badly about exes', 'Every ex was "crazy." Look for the common factor.', 'yellow', 'flag', '2026-01-04'],
 	['cancels', 'Cancels last minute', 'Bails on plans the same day, more than once.', 'yellow', 'flag', '2026-07-17'],
 	['family', 'Rude to my family', 'Dismissive or cold around my family.', 'yellow', 'flag', '2026-01-04'],
-	['drinks', 'Drinks every night', 'Needs a drink to unwind, every single day.', 'yellow', 'flag', '2026-01-04'],
+	['drinks', 'Drinks every night', 'Needs a drink to unwind, every single day.', 'white', 'flag', '2026-01-04'],
 	['jealous', 'Jealous of my friends', 'Resents the time I spend with friends.', 'yellow', 'flag', '2026-01-04'],
 	['pressureDrink', 'Pressures me to drink', "Keeps pushing after I've said no.", 'yellow', 'flag', '2026-01-04'],
 	['notReady', 'Not ready for commitment', '"Seeing where it goes" months in.', 'yellow', 'flag', '2026-01-04'],
 	['asksTexting', "Asks who I'm texting", 'Wants to know who every message is from.', 'yellow', 'flag', '2026-10-12'],
-	['slowText', 'Slow to text back', 'Takes days to reply, then acts like nothing happened.', 'white', 'flag', '2026-01-04'],
+	['slowText', 'Slow to text back', 'Takes days to reply, then acts like nothing happened.', 'yellow', 'flag', '2026-01-04'],
 	['vaguePlans', 'Vague about plans', 'Never commits to a time or place; keeps options open.', 'white', 'flag', '2026-01-04'],
 	['late', 'Always running late', 'Regularly 20+ minutes late without a heads-up.', 'white', 'flag', '2026-01-04'],
 	['forgets', 'Forgets plans', "Doesn't remember what we agreed to.", 'white', 'flag', '2026-01-04'],
@@ -52,26 +52,56 @@ const CARDS = [
 	['datingApps', 'Still on dating apps', 'Active on the apps after we agreed to be exclusive.', 'white', 'dealbreaker', '2026-01-04'],
 	['hidesMe', 'Hides me from friends', "Months in and I've met no one in their life.", 'white', 'dealbreaker', '2026-01-04'],
 	['kids', 'Different stance on kids', 'I want kids. They need to want them too.', 'yellow', 'dealbreaker', '2026-01-04'],
+	['gaslights', '"That never happened"', 'Denies things I know happened, until I doubt myself.', 'red', 'flag', '2026-01-04'],
+	['interrupts', 'Talks over me', 'Interrupts or finishes my sentences, usually wrong.', 'yellow', 'flag', '2026-01-04'],
+	['moodSwings', 'Unpredictable moods', "Fine one minute, angry the next, and I can't tell why.", 'yellow', 'flag', '2026-01-04'],
+	['secretive', 'Secretive with their phone', 'Face-down phone, new passcodes, tilted screens.', 'yellow', 'flag', '2026-01-04'],
+	['workaholic', 'Always working', 'Work always wins, and plans get cut short.', 'white', 'flag', '2026-01-04'],
+	['futureFaking', 'Big plans, no follow-through', 'Talks about trips and moving in, never makes them happen.', 'yellow', 'flag', '2026-08-30'],
+	['hotCold', 'Hot and cold', 'Intense one week, distant the next.', 'yellow', 'flag', '2026-10-02'],
 ].map(([key, title, description, color, column, created]) => ({ key, title, description, color, column, created }));
 
 // ---- People: [key, name, created, ended?, final colors, cards in their Dealbreakers column] ----
 const PEOPLE = [
-	{ key: 'avery', name: 'Avery', created: '2026-09-13', colors: { slowText: 'yellow', exClose: 'yellow', moveAway: 'yellow' } },
+	{ key: 'avery', name: 'Avery', created: '2026-09-13', colors: { exClose: 'yellow', moveAway: 'yellow' } },
 	{
 		key: 'sam', name: 'Sam', created: '2026-08-10',
-		colors: { silentFights: 'red', myFault: 'red', jealous: 'red', cantApologize: 'yellow', asksTexting: 'yellow', boundaries: 'yellow' },
+		colors: {
+			silentFights: 'red', myFault: 'red', jealous: 'red', moodSwings: 'red', asksTexting: 'red', cantApologize: 'yellow',
+			boundaries: 'yellow', phone: 'yellow', gaslights: 'yellow', hotCold: 'yellow', futureFaking: 'yellow',
+			loveBomb: 'yellow', badExes: 'yellow', family: 'yellow', vaguePlans: 'yellow', slowText: 'yellow', late: 'yellow',
+			drinks: 'yellow', neverAsks: 'yellow', notReady: 'yellow',
+		},
 	},
-	{ key: 'casey', name: 'Casey', created: '2026-11-01', colors: { phone: 'yellow', vaguePlans: 'yellow' } },
+	{
+		key: 'casey', name: 'Casey', created: '2026-11-01',
+		colors: { phone: 'yellow', vaguePlans: 'yellow', slowText: 'yellow', late: 'yellow', loveBomb: 'yellow' },
+	},
 	{
 		key: 'riley', name: 'Riley', created: '2026-01-10', ended: '2026-04-21',
-		colors: { loveBomb: 'yellow', phone: 'yellow', smallLies: 'red', vaguePlans: 'red', politics: 'yellow', datingApps: 'red' },
+		colors: {
+			loveBomb: 'yellow', phone: 'red', smallLies: 'red', vaguePlans: 'red', politics: 'yellow', datingApps: 'red',
+			secretive: 'red', gaslights: 'red', slowText: 'yellow', badExes: 'yellow', money: 'yellow', cantApologize: 'red',
+			interrupts: 'yellow', drinks: 'yellow', silentFights: 'yellow', jealous: 'yellow', family: 'yellow', moodSwings: 'yellow',
+		},
 		dealbreakers: ['datingApps'],
 	},
 	{
 		key: 'jordan', name: 'Jordan', created: '2026-05-03', ended: '2026-08-28',
-		colors: { late: 'yellow', cancels: 'red', notReady: 'red', kids: 'red' },
+		colors: {
+			late: 'yellow', cancels: 'red', notReady: 'red', kids: 'red', workaholic: 'red', slowText: 'red', vaguePlans: 'yellow',
+			cantApologize: 'yellow', silentFights: 'yellow', neverAsks: 'yellow', badExes: 'yellow', money: 'yellow',
+			interrupts: 'yellow', gaslights: 'yellow',
+		},
 		dealbreakers: ['kids'],
 	},
+];
+
+// ---- Changes Jace made by hand while testing (his own history entries already record them; kept on the board) ----
+const LIVE_EDITS = [
+	{ profile: 'main', card: 'smallLies', color: 'yellow' },
+	{ profile: 'main', card: 'smokes', column: 'dealbreaker' },
+	{ profile: 'sam', card: 'smokes', color: 'red', column: 'dealbreaker' },
 ];
 
 // ---- History: [profile, card, when, kind, reason, attachments?, newColor?] ----
@@ -171,6 +201,235 @@ const HISTORY = [
 	['casey', 'phone', '2026-11-01T22:30', 'Y', 'Checked their phone constantly at dinner.'],
 	['casey', 'rudeStaff', '2026-11-01T22:32', 'note', 'Really kind to the bartender.'],
 	['casey', 'vaguePlans', '2026-11-06T19:00', 'Y', "'Let's play it by ear' for the weekend. Not sure yet."],
+
+	// ---- Round 2 (2026-11-08): longer threads. The same card with the same person over weeks, notes between changes ----
+	['main', 'interrupts', '2026-01-04T20:35', 'Y', 'I want to be heard, not talked over.'],
+	['main', 'gaslights', '2026-01-04T20:36', 'R', "If I can't trust my own memory around someone, I'm out."],
+	['main', 'moodSwings', '2026-01-04T20:37', 'Y', "Walking on eggshells isn't love."],
+	['main', 'secretive', '2026-01-04T20:39', 'Y', 'Privacy is fine. Hiding things is different.'],
+	['main', 'workaholic', '2026-01-04T20:43', 'note', 'Busy is fine. Never having time for me is not.'],
+	['main', 'drinks', '2026-06-15T20:00', 'W', "Realized this was more about my own habits than anyone else's. Taking it down."],
+	['main', 'futureFaking', '2026-08-30T10:25', 'Y', "Jordan talked about trips we'd take and never booked one. Adding this."],
+	['main', 'slowText', '2026-09-30T20:00', 'Y', 'Third person in a row where this bugged me. Making it official.'],
+	['main', 'hotCold', '2026-10-02T21:00', 'Y', "Sam's week of ice cold, then sweet again. Adding this so I stop excusing it."],
+	['main', 'phone', '2026-11-07T21:00', 'note', 'Stats show this on everyone. Is it them, or do I expect too much attention at dinner?'],
+
+	// Riley
+	['riley', 'loveBomb', '2026-01-12T22:00', 'note', 'Flowers waiting at the restaurant on our first date. Sweet.'],
+	['riley', 'late', '2026-01-20T20:30', 'Y', '20 minutes late to our second date, no text.'],
+	['riley', 'loveBomb', '2026-01-24T21:00', 'note', "Two weeks in and planning our 'first vacation.'"],
+	['riley', 'late', '2026-01-27T19:00', 'note', 'On time, and apologized for last week without me asking.'],
+	['riley', 'smallLies', '2026-01-31T22:00', 'note', "Said they'd seen my favorite movie. Clearly hadn't. Harmless?"],
+	['riley', 'vaguePlans', '2026-02-01T12:00', 'note', 'Spontaneous Saturday: farmers market, then a hike. Fun.'],
+	['riley', 'late', '2026-02-05T20:00', 'W', 'On time three dates in a row. Taking it down.'],
+	['riley', 'vaguePlans', '2026-02-08T17:00', 'note', 'No plan for Saturday until 5 PM. Again.'],
+	['riley', 'phone', '2026-02-12T21:30', 'note', 'Phone on the table, screen down. Better?'],
+	['riley', 'smallLies', '2026-02-19T20:00', 'note', 'The gym story changed twice when I asked about it.'],
+	['riley', 'smallLies', '2026-02-27T22:00', 'note', "Third small one this month: said their phone was dead. It wasn't."],
+	['riley', 'secretive', '2026-02-28T21:00', 'Y', 'Phone always face down. Flips it over when a text comes in.'],
+	['riley', 'phone', '2026-03-04T22:00', 'note', 'Texting through the whole movie.'],
+	['riley', 'loveBomb', '2026-03-05T20:00', 'note', 'The grand gestures stopped the week we became exclusive.'],
+	['riley', 'vaguePlans', '2026-03-07T18:00', 'note', 'Asked them to plan ahead once in a while. They did: one dinner, booked a week out.'],
+	['riley', 'secretive', '2026-03-08T21:30', 'note', 'Tilted the screen away when I sat down next to them.'],
+	['riley', 'politics', '2026-03-10T21:00', 'note', 'Tried the conversation again, calmer. Still dismissive.'],
+	['riley', 'slowText', '2026-03-12T23:00', 'Y', 'Hours of silence on Saturdays.'],
+	['riley', 'gaslights', '2026-03-16T10:00', 'Y', "Insisted they never said they'd be at their brother's. They did. I have the text."],
+	['riley', 'phone', '2026-03-19T22:00', 'R', 'The phone comes to the bathroom now. Every time.'],
+	['riley', 'gaslights', '2026-03-20T21:00', 'R', 'Did it again about a different night. Twice in one week.'],
+	['riley', 'secretive', '2026-03-22T23:00', 'note', "Left the room for a 'work call' at 11 PM on a Saturday."],
+	['riley', 'slowText', '2026-03-26T12:00', 'note', 'Always Saturdays. I see the pattern now.'],
+	['riley', 'smallLies', '2026-03-28T20:00', 'note', "Each lie is small. Together they're a lot."],
+	['riley', 'datingApps', '2026-04-03T21:00', 'note', "Asked about the notification again. 'Old account, can't remember the password.'"],
+	['riley', 'secretive', '2026-04-05T22:00', 'R', 'Changed their passcode the day after I saw the app notification.'],
+	['riley', 'gaslights', '2026-04-08T22:00', 'note', "'You're paranoid.' I have screenshots."],
+	['riley', 'smallLies', '2026-04-10T20:00', 'note', 'I stopped believing the first version of anything they tell me.'],
+	['riley', 'datingApps', '2026-04-12T19:00', 'note', "Dani says she saw Riley's profile 'active recently.' I didn't want to believe her."],
+	['riley', 'secretive', '2026-04-20T22:00', 'note', 'Looking back, the phone told me everything before Dani did.'],
+
+	['riley', 'badExes', '2026-01-14T22:00', 'note', "Every ex story ends with 'and then she went crazy.' Two so far."],
+	['riley', 'money', '2026-01-18T21:00', 'note', 'Insisted on paying for everything the first few dates.'],
+	['riley', 'badExes', '2026-01-22T21:00', 'Y', "Third 'crazy ex' story. Watching this."],
+	['riley', 'cantApologize', '2026-01-29T20:00', 'note', 'A real apology for being late last week. Nice.'],
+	['riley', 'badExes', '2026-02-17T20:00', 'note', 'Ran into one of the exes by accident. She seemed perfectly nice.'],
+	['riley', 'money', '2026-02-24T21:00', 'Y', "Borrowed $200 'until Friday.'"],
+	['riley', 'cantApologize', '2026-03-02T23:50', 'Y', "After the politics fight: 'I'm sorry you got upset.'"],
+	['riley', 'cantApologize', '2026-03-23T21:00', 'note', 'Still no apology for the disappearing weekend.'],
+	['riley', 'money', '2026-03-27T20:00', 'note', "Friday was a month ago. Asked about the $200. 'Oh, right.'"],
+	['riley', 'badExes', '2026-04-14T21:00', 'note', "Now I get why the exes sound the way they do in Riley's stories."],
+	['riley', 'cantApologize', '2026-04-16T22:00', 'R', "Caught lying about the apps. Not one 'sorry.'"],
+	['riley', 'money', '2026-04-18T12:00', 'note', 'Got the $200 back. After asking three times.'],
+
+	// Jordan
+	['jordan', 'drinks', '2026-05-06T22:00', 'note', 'Two drinks on our first date, then switched to water. Respect.'],
+	['jordan', 'neverAsks', '2026-05-13T21:00', 'note', "Asked about my pottery class. Remembered my teacher's name."],
+	['jordan', 'drinks', '2026-05-20T19:00', 'Y', 'Third beer by 7 PM at the barbecue.'],
+	['jordan', 'cantApologize', '2026-05-26T12:00', 'Y', "No apology for brunch. 'Traffic, what can you do.'"],
+	['jordan', 'drinks', '2026-05-27T21:00', 'note', 'Asked about it gently. Said it was a rough week.'],
+	['jordan', 'cantApologize', '2026-06-07T20:00', 'note', 'Brought up the brunch thing on their own, days later.'],
+	['jordan', 'cantApologize', '2026-06-08T21:00', 'W', 'A real apology, unprompted. Taking it down.'],
+	['jordan', 'drinks', '2026-06-25T21:00', 'W', "Haven't seen it since. Taking it down."],
+	['jordan', 'silentFights', '2026-07-02T22:00', 'Y', 'Went quiet after the kids conversation. Two days.'],
+	['jordan', 'silentFights', '2026-07-06T20:00', 'note', "We talked it through. They said they shut down when it's hard."],
+	['jordan', 'neverAsks', '2026-07-22T21:00', 'Y', "Haven't been asked about my week in a while."],
+	['jordan', 'cantApologize', '2026-08-07T19:00', 'Y', "Cancelled again and didn't apologize this time."],
+	['jordan', 'neverAsks', '2026-08-11T21:00', 'note', 'Every dinner is about the launch.'],
+	['jordan', 'silentFights', '2026-08-24T22:00', 'note', "Silent the whole drive home from my sister's."],
+
+	['jordan', 'phone', '2026-05-17T21:00', 'Y', 'Checked fantasy football scores all through dinner.'],
+	['jordan', 'late', '2026-05-31T11:00', 'note', 'On time, and brought coffee.'],
+	['jordan', 'phone', '2026-06-01T20:00', 'note', 'Put the phone face down as soon as I mentioned it.'],
+	['jordan', 'workaholic', '2026-06-10T22:00', 'Y', 'Third date in a row cut short for work calls.'],
+	['jordan', 'workaholic', '2026-06-12T10:00', 'note', 'Cancelled brunch for a work thing. Fine, it happens.'],
+	['jordan', 'phone', '2026-06-14T20:00', 'W', 'The phone stays in their pocket now. Taking it down.'],
+	['jordan', 'notReady', '2026-06-18T23:00', 'note', "Introduced me as 'a friend' at their cousin's party."],
+	['jordan', 'late', '2026-06-21T20:30', 'R', '40 minutes late to dinner with my sister. My sister noticed.'],
+	['jordan', 'vaguePlans', '2026-06-28T18:00', 'Y', "Weekend plans stay 'tbd' until Saturday."],
+	['jordan', 'late', '2026-07-05T12:00', 'note', 'Talked about it. They set alarms for our plans now.'],
+	['jordan', 'workaholic', '2026-07-08T21:00', 'note', 'Big launch at work. Said it calms down in August.'],
+	['jordan', 'vaguePlans', '2026-07-10T20:00', 'note', 'Planned the beach trip three weeks ahead. Proud of them.'],
+	['jordan', 'kids', '2026-07-12T19:00', 'note', 'Jordan held my niece the whole afternoon. Hope.'],
+	['jordan', 'workaholic', '2026-07-15T21:00', 'note', "Took a call during my sister's birthday dinner."],
+	['jordan', 'cancels', '2026-07-20T19:30', 'note', 'Rescheduled dinner and showed up with flowers.'],
+	['jordan', 'slowText', '2026-07-20T12:00', 'Y', 'Days between replies again.'],
+	['jordan', 'late', '2026-07-26T12:00', 'Y', 'On time for weeks now. Down to yellow.'],
+	['jordan', 'slowText', '2026-07-27T21:00', 'note', 'Says texting feels like work after work.'],
+	['jordan', 'slowText', '2026-07-30T22:30', 'R', "Four days, no reply, then 'hey stranger.'"],
+	['jordan', 'kids', '2026-08-02T21:00', 'note', "Asked what 'open to it' means. 'Someday, maybe.' Someday when?"],
+	['jordan', 'cancels', '2026-08-04T18:00', 'note', 'Cancelled the weekend trip. Work again.'],
+	['jordan', 'notReady', '2026-08-05T22:00', 'note', "Asked where this is going. 'Let's just enjoy it.'"],
+	['jordan', 'workaholic', '2026-08-12T21:00', 'R', "It didn't calm down."],
+	['jordan', 'family', '2026-08-16T20:00', 'note', "My sister asked if Jordan's 'still around.' Hm."],
+	['jordan', 'cancels', '2026-08-19T20:00', 'note', "I've stopped making plans that matter to me."],
+	['jordan', 'workaholic', '2026-08-20T22:00', 'note', "Said work is 'just how it is' for the next few years."],
+	['jordan', 'notReady', '2026-08-22T23:00', 'note', 'Four months. Still no word for what we are.'],
+
+	// Sam
+	['sam', 'loveBomb', '2026-08-12T22:00', 'note', 'Huge bouquet on date two. A bit much?'],
+	['sam', 'loveBomb', '2026-08-19T22:00', 'Y', "'I've never felt this way about anyone,' in week two."],
+	['sam', 'badExes', '2026-08-21T21:00', 'Y', "Called their last two exes 'psychos.'"],
+	['sam', 'loveBomb', '2026-08-26T21:00', 'note', "Planning a trip for our 'one-month anniversary.'"],
+	['sam', 'family', '2026-09-14T13:00', 'note', 'Met my mom at brunch. Charming.'],
+	['sam', 'badExes', '2026-09-24T21:00', 'note', 'An ex texted them. Sam showed me and laughed about her.'],
+	['sam', 'family', '2026-10-11T14:00', 'Y', "Skipped my mom's birthday dinner after our fight."],
+	['sam', 'badExes', '2026-10-19T21:00', 'note', 'Wondering what Sam tells people about me.'],
+	['sam', 'family', '2026-10-25T12:00', 'note', "Mom asked if everything's okay with Sam."],
+
+	['sam', 'phone', '2026-08-24T21:00', 'Y', 'Phone out the whole time at the farmers market.'],
+	['sam', 'silentFights', '2026-08-28T22:00', 'note', 'First small disagreement, about where to eat. Sam went quiet for an hour, then fine.'],
+	['sam', 'boundaries', '2026-09-02T20:00', 'note', "Told Sam I need one night a week to myself. They said 'of course.'"],
+	['sam', 'interrupts', '2026-09-05T20:00', 'Y', 'Finished my sentences for me. Wrong, every time.'],
+	['sam', 'jealous', '2026-09-06T21:00', 'note', "Asked who 'Dani' was three times this week."],
+	['sam', 'myFault', '2026-09-08T22:00', 'note', 'Sam forgot our plans, and somehow I should have reminded them.'],
+	['sam', 'futureFaking', '2026-09-10T21:00', 'Y', "Keeps saying 'we should go to Japan' and changes the subject when I suggest dates."],
+	['sam', 'phone', '2026-09-12T21:00', 'note', 'Phone at dinner again. Said it was work.'],
+	['sam', 'silentFights', '2026-09-16T21:00', 'note', 'Day two of silence ended with Sam acting like nothing happened.'],
+	['sam', 'boundaries', '2026-09-18T23:00', 'note', "Texted 'just checking in' six times on my night off. Let it go."],
+	['sam', 'interrupts', '2026-09-19T22:00', 'note', 'Told a story at dinner and Sam finished it. Wrong ending.'],
+	['sam', 'moodSwings', '2026-09-20T22:30', 'Y', 'Fine one minute, cold the next. Never says why.'],
+	['sam', 'myFault', '2026-09-22T21:00', 'note', "Apologized for being 'too sensitive' about Sam's comment. Why did I apologize?"],
+	['sam', 'moodSwings', '2026-09-26T21:00', 'note', "Asked what was wrong. 'Nothing.' Clearly something."],
+	['sam', 'silentFights', '2026-09-29T21:00', 'note', 'Silent again after I said no to their work party. One day this time.'],
+	['sam', 'moodSwings', '2026-10-02T23:00', 'R', 'Slammed a door after I said I was tired. Scared me a bit.'],
+	['sam', 'boundaries', '2026-10-05T22:00', 'note', 'Read my texts over my shoulder. Said it was a joke.'],
+	['sam', 'hotCold', '2026-10-06T21:00', 'Y', 'Sweetest person alive on Monday, ice cold by Wednesday.'],
+	['sam', 'jealous', '2026-10-08T22:00', 'note', "Skipped girls' night so Sam wouldn't be upset. I regret it."],
+	['sam', 'moodSwings', '2026-10-09T20:00', 'note', "Apologized for the door, sort of. 'You know how I get.'"],
+	['sam', 'futureFaking', '2026-10-10T21:00', 'note', 'Japan came up again. I asked for dates. Subject changed.'],
+	['sam', 'hotCold', '2026-10-13T20:00', 'note', 'Flowers after the cold week. Same cycle as last time.'],
+	['sam', 'gaslights', '2026-10-14T20:00', 'Y', "Says the fight on the 11th 'wasn't a big deal' and I'm remembering it wrong."],
+	['sam', 'gaslights', '2026-10-16T21:00', 'note', "Showed Sam the texts from the 11th. 'You're taking them out of context.'"],
+	['sam', 'asksTexting', '2026-10-17T22:00', 'R', 'Picked up my phone when it buzzed and read the message out loud.'],
+	['sam', 'myFault', '2026-10-18T12:00', 'note', "Maya was there for the last one. She said 'you didn't do anything.' I needed to hear that."],
+	['sam', 'silentFights', '2026-10-20T21:00', 'note', "Asked Sam to talk instead of going quiet. 'I need space to process.' Fair, if it's hours, not days."],
+	['sam', 'moodSwings', '2026-10-21T21:00', 'note', "I'm learning to read the mood before I speak. That's not normal."],
+	['sam', 'boundaries', '2026-10-24T18:00', 'note', 'Asked Sam to stop calling my work line. They agreed, sounding annoyed.'],
+	['sam', 'interrupts', '2026-10-25T20:00', 'note', 'Better at dinner tonight. Listened the whole time.'],
+	['sam', 'cantApologize', '2026-10-26T21:00', 'note', "'I'm sorry, but...' Everything after 'but' cancels it."],
+	['sam', 'silentFights', '2026-10-27T20:00', 'note', 'Three days. I counted.'],
+	['sam', 'gaslights', '2026-10-28T22:00', 'note', 'Second time this month I doubted my own memory. Keeping notes here for exactly this.'],
+	['sam', 'jealous', '2026-10-30T23:30', 'note', "Went to Maya's anyway. Sam texted 14 times."],
+	['sam', 'asksTexting', '2026-10-31T21:00', 'note', 'Wanted to read my texts with Maya. I said no. Two-hour argument.'],
+	['sam', 'hotCold', '2026-10-31T22:00', 'note', 'Mapped it out: warm after I pull back, cold once I lean in.'],
+	['sam', 'moodSwings', '2026-11-01T20:00', 'note', 'Good week. I keep waiting for the drop.'],
+	['sam', 'futureFaking', '2026-11-02T21:30', 'note', "Same with meeting their parents: 'soon.'"],
+	['sam', 'phone', '2026-11-03T21:00', 'note', 'Was actually present at dinner. Noticed.'],
+	['sam', 'myFault', '2026-11-04T21:00', 'note', "Started saying 'I'm not apologizing for that' out loud. Sam hates it."],
+	['sam', 'gaslights', '2026-11-05T19:00', 'note', "Maya read my notes. 'This is not you misremembering.'"],
+	['sam', 'boundaries', '2026-11-05T21:00', 'note', "Two days of respecting it. I'm grateful for the bare minimum, and I notice that."],
+	['sam', 'cantApologize', '2026-11-06T22:00', 'note', 'Sam apologized for the door. A real one, finally. Noting it.'],
+	['sam', 'interrupts', '2026-11-07T19:00', 'W', 'Three good dinners in a row. Taking it down.'],
+	['sam', 'silentFights', '2026-11-07T22:00', 'note', 'Wrote down every silence since August. Eleven. Two days on average.'],
+
+	// Avery
+	['avery', 'slowText', '2026-09-16T21:00', 'note', 'Replies within the hour, sometimes with photos of their dog.'],
+	['avery', 'phone', '2026-09-27T21:00', 'Y', 'Answered work emails at dinner.'],
+	['avery', 'slowText', '2026-10-03T22:00', 'note', 'Quiet day. A long shift at the hospital; they told me after.'],
+	['avery', 'workaholic', '2026-10-08T22:00', 'Y', 'Cancelled Thursday for a double shift.'],
+	['avery', 'exClose', '2026-10-09T21:00', 'note', 'Asked about the ex. Two years together, ended mutually, same friend group.'],
+	['avery', 'phone', '2026-10-12T20:00', 'note', 'Left their phone in the car before dinner, without me asking.'],
+	['avery', 'slowText', '2026-10-15T21:00', 'note', 'We talked about texting. They prefer calls. Trying more calls.'],
+	['avery', 'exClose', '2026-10-17T23:00', 'note', 'The ex was at trivia night. A little awkward for me, totally normal for them.'],
+	['avery', 'workaholic', '2026-10-19T20:00', 'note', 'Always tells me ahead now, and makes it up on the weekend.'],
+	['avery', 'slowText', '2026-10-22T13:00', 'note', 'Called on their lunch break just to say hi.'],
+	['avery', 'moveAway', '2026-10-23T21:00', 'note', 'The Denver job is a maybe, not a plan. Final rounds in January.'],
+	['avery', 'exClose', '2026-10-26T22:00', 'note', "The ex introduced herself and was lovely. I'm overthinking this."],
+	['avery', 'politics', '2026-10-27T21:00', 'note', 'Still disagree on two things, still kind about it.'],
+	['avery', 'phone', '2026-10-30T20:00', 'W', "We made a 'no phones at dinner' rule together. They stuck to it. Taking it down."],
+	['avery', 'moveAway', '2026-10-31T21:00', 'note', "Talked about what we'd do if it happens. Long distance for a year? Open question."],
+	['avery', 'workaholic', '2026-11-02T20:00', 'W', "It's a hard job, not a priority problem. Taking it down."],
+	['avery', 'moveAway', '2026-11-03T22:00', 'note', "Asked if I'd ever move. Honestly, maybe."],
+	['avery', 'slowText', '2026-11-05T09:00', 'W', 'Weeks of easy texting. Taking it back down.'],
+	['avery', 'exClose', '2026-11-06T21:00', 'note', 'Thinking about taking this back to white. Waiting a few more weeks.'],
+	['avery', 'moveAway', '2026-11-07T22:00', 'note', "Not letting a 'maybe' in January decide November."],
+
+	// Round 2b: the same cards across more people, so patterns show up
+	['riley', 'interrupts', '2026-02-03T22:00', 'Y', 'Talks over me at parties, every time.'],
+	['riley', 'interrupts', '2026-02-26T21:00', 'note', "Did it in front of my boss at the work dinner. Mortifying."],
+	['riley', 'notReady', '2026-02-15T22:00', 'Y', "Doesn't want labels yet. Six weeks in."],
+	['riley', 'notReady', '2026-03-01T21:30', 'W', "We're exclusive now. Taking it down."],
+	['riley', 'drinks', '2026-02-21T23:30', 'Y', 'Four drinks every night we go out.'],
+	['riley', 'drinks', '2026-03-18T22:00', 'note', 'Drunk texts at 2 AM, then pretends they never happened.'],
+	['riley', 'silentFights', '2026-03-03T21:00', 'Y', 'Silent for a whole day after the politics fight.'],
+	['riley', 'silentFights', '2026-03-11T20:00', 'note', "Asked to talk instead. 'There's nothing to talk about.'"],
+	['riley', 'jealous', '2026-03-14T23:00', 'Y', 'Annoyed I went out with coworkers. From someone who disappears every Saturday.'],
+	['riley', 'family', '2026-03-29T18:00', 'Y', 'Skipped Sunday dinner with my family, last minute.'],
+	['riley', 'moodSwings', '2026-04-01T22:00', 'Y', 'Snapped at me over dinner, sweet again an hour later.'],
+
+	['jordan', 'badExes', '2026-05-15T21:00', 'Y', "Their ex was 'controlling.' Every story, the same villain."],
+	['jordan', 'badExes', '2026-06-03T20:00', 'note', "Heard the ex's side from a mutual friend. It's complicated."],
+	['jordan', 'money', '2026-06-30T21:00', 'Y', 'Bought a $900 watch, then asked me to cover dinner.'],
+	['jordan', 'money', '2026-07-18T21:00', 'note', 'Third time covering dinner this month.'],
+	['jordan', 'interrupts', '2026-07-03T20:00', 'Y', 'Talks over me whenever work comes up.'],
+	['jordan', 'gaslights', '2026-08-08T21:00', 'Y', 'Said they never promised the beach trip. They did.'],
+	['jordan', 'gaslights', '2026-08-14T21:00', 'note', "'I said maybe.' I have the text that says 'it's booked.'"],
+
+	['sam', 'vaguePlans', '2026-08-31T12:00', 'Y', "'Let's see how I feel' about Saturday."],
+	['sam', 'slowText', '2026-09-03T22:00', 'Y', 'Hours without a reply, then 20 texts at once.'],
+	['sam', 'late', '2026-09-09T20:00', 'Y', '45 minutes late. Said the bus was slow.'],
+	['sam', 'drinks', '2026-09-25T23:00', 'Y', 'Drinks more when we fight.'],
+	['sam', 'vaguePlans', '2026-09-27T12:00', 'note', "Plans only happen when they're Sam's idea."],
+	['sam', 'late', '2026-09-30T19:00', 'note', 'On time, with flowers. Trying.'],
+	['sam', 'slowText', '2026-10-03T21:00', 'note', "Went silent all day, then 'why aren't you answering me?' at night."],
+	['sam', 'neverAsks', '2026-10-07T21:00', 'Y', "Talked for an hour about their week. Didn't ask about mine."],
+	['sam', 'drinks', '2026-10-22T23:30', 'note', 'Three drinks before dinner. The fight after was worse.'],
+	['sam', 'notReady', '2026-10-23T21:00', 'Y', "'Why do we need to define it?' Three months in."],
+
+	['avery', 'vaguePlans', '2026-09-21T20:00', 'Y', "Plans only firm up a day ahead because of the hospital schedule."],
+	['avery', 'late', '2026-10-01T20:30', 'Y', 'Late twice this week. Shifts run over.'],
+	['avery', 'late', '2026-10-10T19:00', 'W', 'Texts the second they know they will be late now. Taking it down.'],
+	['avery', 'vaguePlans', '2026-10-14T19:00', 'W', 'Planned our whole Saturday: the museum, then the taco place I mentioned weeks ago. Taking it down.'],
+	['avery', 'cantApologize', '2026-10-20T22:00', 'Y', 'Got defensive when I said a comment stung.'],
+	['avery', 'cantApologize', '2026-10-21T19:00', 'W', "Came back the next day: 'You were right, I'm sorry.' Taking it down."],
+
+	['casey', 'late', '2026-11-01T20:00', 'Y', '15 minutes late to the first date. Did text ahead.'],
+	['casey', 'loveBomb', '2026-11-03T22:00', 'Y', "A 'can't stop thinking about you' text after one date."],
+	['casey', 'loveBomb', '2026-11-06T20:00', 'note', 'Toned down since. Maybe just excited.'],
+
+	// Casey
+	['casey', 'slowText', '2026-11-05T22:00', 'Y', 'Took a day and a half to text back after our first date.'],
+	['casey', 'slowText', '2026-11-07T09:00', 'note', 'Texted first today. Good sign.'],
+	['casey', 'phone', '2026-11-07T20:30', 'note', 'Second date. Phone stayed in their pocket.'],
+	['casey', 'vaguePlans', '2026-11-08T09:00', 'note', 'Texted Saturday morning with an actual plan. Nice.'],
 ];
 
 // ---- Build ids the way the app does, but stable so re-running replaces the same cards ----
@@ -180,14 +439,13 @@ const profileId = (p) => (p.key === 'main' ? 'main' : `profile_${T(`${p.created}
 const byKey = Object.fromEntries(CARDS.map((c) => [c.key, { ...c, id: cardId(c) }]));
 const MAIN = { key: 'main', name: 'Main Profile', created: '2026-01-04' };
 const profileOf = (k) => (k === 'main' ? MAIN : PEOPLE.find((p) => p.key === k));
-const NEXT = { white: 'yellow', yellow: 'red', red: 'white' };
 const COLOR = { W: 'white', Y: 'yellow', R: 'red' };
 const rank = { red: 0, yellow: 1, white: 2 };
 
 // Replays the history from a fresh board and checks it lands on the final board described above.
 function buildAndCheck() {
 	const fail = (m) => { throw new Error(m); };
-	if (CARDS.length !== 36) fail(`expected 36 cards, got ${CARDS.length}`);
+	if (CARDS.length !== 43) fail(`expected 43 cards, got ${CARDS.length}`);
 	const state = {}; // profile -> card -> {color, column}
 	const mainDB = new Set(CARDS.filter((c) => c.column === 'dealbreaker' && c.key !== 'kids').map((c) => c.key));
 	for (const p of [MAIN, ...PEOPLE]) {
@@ -207,7 +465,8 @@ function buildAndCheck() {
 		let prev = s.color, next = prev, prevType = 'flag', newType = 'flag';
 		if (COLOR[kind]) {
 			if (s.column !== 'flag') fail(`dealbreaker cards have no flag to tap: ${where}`);
-			if (NEXT[prev] !== COLOR[kind]) fail(`tap goes ${prev} -> ${NEXT[prev]}, not ${COLOR[kind]}: ${where}`);
+			// Since update 1 the flag offers the two other colors, so any change is one step.
+			if (prev === COLOR[kind]) fail(`already ${prev}: ${where}`);
 			next = COLOR[kind];
 		} else if (kind === 'toDB') {
 			if (s.column !== 'flag') fail(`already a dealbreaker: ${where}`);
@@ -241,6 +500,14 @@ function buildAndCheck() {
 				fail(`${p.key}/${c.key} ends ${s.color}/${s.column}, board says ${want.color}/${want.column}`);
 		}
 	if (Object.values(URLS).some((u) => !/^https:\/\//.test(u))) fail('an attachment URL is missing');
+
+	// Jace's own test changes win over the story (his history entries already cover them).
+	for (const e of LIVE_EDITS) {
+		const s = state[e.profile]?.[e.card];
+		if (!s) fail(`live edit for unknown ${e.profile}/${e.card}`);
+		if (e.color) s.color = e.color;
+		if (e.column) s.column = e.column;
+	}
 
 	// The board blob the app saves: { profileId: { name, flag: [...], dealbreaker: [...] } }, worst flags first.
 	const item = (c, color) => ({ id: byKey[c.key].id, title: c.title, description: c.description, flag: color });
