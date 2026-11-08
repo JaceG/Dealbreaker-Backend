@@ -185,6 +185,22 @@ router.post('/', async (req, res) => {
 	}
 });
 
+// Delete every entry for one of your profiles (the app calls this when a profile is deleted)
+router.delete('/profile/:profileId', async (req, res) => {
+	try {
+		if (req.params.profileId === 'main') {
+			return res.status(400).json({ message: 'The main profile cannot be deleted' });
+		}
+		const result = await FlagHistory.deleteMany({
+			profileId: req.params.profileId,
+			creatorId: req.user.id,
+		});
+		res.json({ deleted: result.deletedCount });
+	} catch (error) {
+		res.status(500).json({ message: error.message });
+	}
+});
+
 // Add attachment to a history entry
 router.post('/:historyId/attachment', async (req, res) => {
 	try {

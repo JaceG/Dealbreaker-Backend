@@ -132,5 +132,22 @@ test(
 		);
 		assert.deepStrictEqual(search.body, []);
 		assert.strictEqual(await FlagHistory.countDocuments(), 2);
+
+		// Deleting a profile's history takes only your own entries for that profile.
+		const sam = { ...entry, profileId: 'profile_1', profileName: 'Sam' };
+		await call('POST', '/', sam, tokenFor(alice));
+		await call('POST', '/', sam, tokenFor(bob));
+		assert.strictEqual(
+			(await call('DELETE', '/profile/main', null, tokenFor(alice))).status,
+			400
+		);
+		assert.strictEqual(
+			(await call('DELETE', '/profile/profile_1', null)).status,
+			401
+		);
+		const cleared = await call('DELETE', '/profile/profile_1', null, tokenFor(alice));
+		assert.deepStrictEqual(cleared.body, { deleted: 1 });
+		assert.strictEqual(await FlagHistory.countDocuments({ profileId: 'profile_1' }), 1);
+		assert.strictEqual(await FlagHistory.countDocuments(), 3);
 	}
 );
