@@ -31,6 +31,16 @@ const UserSchema = new Schema({
 	profile_image: {
 		type: String,
 	},
+	// Developer tools (the board/gesture log). Set only with scripts/set-developer.js, never from the app.
+	developer: {
+		type: Boolean,
+		default: false,
+	},
+	// Support can turn the board/gesture log on for any account until this date (scripts/set-diagnostics.js),
+	// so a user can reproduce a problem and send it in. Unset means off.
+	diagnosticsUntil: {
+		type: Date,
+	},
 	created_at: {
 		type: Date,
 		default: Date.now,

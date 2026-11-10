@@ -6,7 +6,7 @@ const uri = process.env.TEST_MONGODB_URI;
 const local = uri && /^mongodb:\/\/(127\.0\.0\.1|localhost)[:/]/.test(uri);
 
 test(
-	'board logs need a login, are owned by the token user, and reject bad batches',
+	'board logs need a developer account, are owned by the token user, and reject bad batches',
 	{ skip: !local && 'set TEST_MONGODB_URI to a local MongoDB' },
 	async (t) => {
 		const express = require('express');
@@ -15,6 +15,7 @@ test(
 
 		process.env.JWT_SECRET = 'test-secret';
 		const BoardLog = require('../models/BoardLog');
+		const User = require('../models/User');
 		const app = express();
 		app.use(express.json({ limit: '5mb' }));
 		app.use('/api/boardLog', require('../routes/boardLog'));
@@ -29,8 +30,17 @@ test(
 			await mongoose.disconnect();
 		});
 
-		const alice = new mongoose.Types.ObjectId().toString();
+		// alice has the developer flag; bob is an ordinary account.
+		const alice = (await User.create({ name: 'A', email: 'a@example.test', developer: true }))._id.toString();
+		const bob = (await User.create({ name: 'B', email: 'b@example.test' }))._id.toString();
 		const token = jwt.sign({ user: { id: alice } }, process.env.JWT_SECRET);
+		const bobToken = jwt.sign({ user: { id: bob } }, process.env.JWT_SECRET);
+		// Support switched diagnostics on for carol (still running) and dave (expired yesterday).
+		const day = 24 * 60 * 60 * 1000;
+		const carol = (await User.create({ name: 'C', email: 'c@example.test', diagnosticsUntil: new Date(Date.now() + day) }))._id.toString();
+		const dave = (await User.create({ name: 'D', email: 'd@example.test', diagnosticsUntil: new Date(Date.now() - day) }))._id.toString();
+		const carolToken = jwt.sign({ user: { id: carol } }, process.env.JWT_SECRET);
+		const daveToken = jwt.sign({ user: { id: dave } }, process.env.JWT_SECRET);
 		const post = async (body, tok = token) => {
 			const res = await fetch(base, {
 				method: 'POST',
@@ -49,6 +59,9 @@ test(
 
 		assert.strictEqual(await post({ session: 's1', events }, null), 401);
 		assert.strictEqual(await post({ session: 's1', events }, 'bad'), 401);
+		assert.strictEqual(await post({ session: 's1', events }, bobToken), 403);
+		assert.strictEqual(await post({ session: 's2', events }, daveToken), 403);
+		assert.strictEqual(await post({ session: 's2', events }, carolToken), 201);
 		assert.strictEqual(await post({ events }), 400);
 		assert.strictEqual(await post({ session: 's1', events: [] }), 400);
 		assert.strictEqual(await post({ session: 's1', events: [1, 2] }), 400);
@@ -64,7 +77,7 @@ test(
 			await post({ session: 's1', events, userId: 'someone-else' }),
 			201
 		);
-		const docs = await BoardLog.find().lean();
+		const docs = await BoardLog.find({ session: 's1' }).lean();
 		assert.strictEqual(docs.length, 1);
 		assert.strictEqual(docs[0].userId.toString(), alice);
 		assert.deepStrictEqual(

@@ -1,12 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const BoardLog = require('../models/BoardLog');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 
 const MAX_EVENTS = 1000;
 const MAX_BYTES = 512 * 1024;
 
 router.use(auth);
+
+// Developer accounts, or accounts support turned diagnostics on for (until a date). Nobody else is logged.
+router.use(async (req, res, next) => {
+	try {
+		const user = await User.findById(req.user.id).select('developer diagnosticsUntil').lean();
+		const diagnostics = user?.diagnosticsUntil && new Date(user.diagnosticsUntil) > new Date();
+		if (!user?.developer && !diagnostics) {
+			return res.status(403).json({ message: 'Board logs are off for this account' });
+		}
+		next();
+	} catch (error) {
+		console.error('Error checking developer flag:', error);
+		res.status(500).json({ message: 'Server error' });
+	}
+});
 
 // A batch of board/gesture events from one app session. Stored as sent, owned by the token's user.
 router.post('/', async (req, res) => {
