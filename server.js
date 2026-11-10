@@ -12,11 +12,14 @@ const uploadRoutes = require('./routes/upload');
 const dealbreakerRoutes = require('./routes/dealbreaker');
 const User = require('./models/User');
 const myAccountRoutes = require('./routes/myAccount');
+const boardLogRoutes = require('./routes/boardLog');
 // Create Express app
 const app = express();
 
 // Middleware
 app.use(cors());
+// Board logs get their own small body limit; parsed here, the 50 MB parser below skips them.
+app.use('/api/boardLog', express.json({ limit: '1mb' }));
 app.use(express.json({ limit: '50mb' })); // Increased limit for file uploads
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -38,6 +41,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/dealbreaker', dealbreakerRoutes);
 app.use('/api/myAccount', myAccountRoutes);
+app.use('/api/boardLog', boardLogRoutes);
 // Root route
 app.get('/', (req, res) => {
 	res.json({ message: 'Welcome to Dealbreaker API' });
